@@ -1,10 +1,10 @@
-import exampleIconUrl from "./noun-paperclip-7598668-00449F.png";
 import "./style.css";
 
 document.body.innerHTML = `
   <h1> Sticker Sketching </h1>
-  <p>Example image asset: <img src="${exampleIconUrl}" class="icon" /></p>
   <button id="button">Clear</button>
+  <button id="undo">Undo</button>
+  <button id="redo">Redo</button>
 `;
 
 const canvas = document.createElement("canvas");
@@ -14,15 +14,17 @@ document.body.append(canvas);
 
 const context = canvas.getContext("2d")!;
 const button = document.getElementById("button") as HTMLButtonElement;
+const undo = document.getElementById("undo") as HTMLButtonElement;
+const redo = document.getElementById("redo") as HTMLButtonElement;
 
 let isDraw = false;
 let lastX = 0;
 let lastY = 0;
 
 type Point = { x: number; y: number };
-type MouseLike = { offsetX: number; offsetY: number };
 
 const drawing: Point[][] = [];
+const redoStack: Point[][] = [];
 let currentStroke: Point[] | null = null;
 
 function drawingChanged() {
@@ -68,8 +70,8 @@ canvas.addEventListener("mouseout", () => {
   currentStroke = null;
 });
 
-canvas.addEventListener("mousemove", (e: unknown) => {
-  const m = e as MouseLike;
+canvas.addEventListener("mousemove", (e) => {
+  const m = e as MouseEvent;
   if (!isDraw || !currentStroke) return;
   currentStroke.push({ x: m.offsetX, y: m.offsetY });
   [lastX, lastY] = [m.offsetX, m.offsetY];
@@ -78,5 +80,20 @@ canvas.addEventListener("mousemove", (e: unknown) => {
 
 button.addEventListener("click", () => {
   drawing.length = 0;
+  redoStack.length = 0;
+  drawingChanged();
+});
+
+undo.addEventListener("click", () => {
+  if (!drawing.length) return;
+  const popped = drawing.pop()!;
+  redoStack.push(popped);
+  drawingChanged();
+});
+
+redo.addEventListener("click", () => {
+  if (!redoStack.length) return;
+  const popped = redoStack.pop()!;
+  drawing.push(popped);
   drawingChanged();
 });
