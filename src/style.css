@@ -6,3 +6,7 @@
 canvas {
   border: thin solid black;
 }
+
+#canvas {
+  cursor: crosshair;
+}

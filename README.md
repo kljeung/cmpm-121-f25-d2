@@ -7,3 +7,7 @@
 ## Step 2
 
 - added drawing and a clear canvas function
+
+## Step 3
+
+- added an array to store all points drawn
