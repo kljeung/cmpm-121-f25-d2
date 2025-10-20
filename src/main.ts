@@ -7,6 +7,10 @@ document.body.innerHTML = `
   <button id="redo">Redo</button>
   <button id="thinTool" class="selectedTool">Thin Marker</button>
   <button id="thickTool">Thick Marker</button>
+  <br/>
+  <button id="purple">💜</button>
+  <button id="fireStatement">🗣️🔥‼️</button>
+  <button id="o7">🫡</button>
 `;
 
 const canvas = document.createElement("canvas");
@@ -16,30 +20,63 @@ canvas.style.cursor = "none";
 document.body.append(canvas);
 
 const context = canvas.getContext("2d")!;
+
 const button = document.getElementById("button") as HTMLButtonElement;
 const undo = document.getElementById("undo") as HTMLButtonElement;
 const redo = document.getElementById("redo") as HTMLButtonElement;
 const thinTool = document.getElementById("thinTool") as HTMLButtonElement;
 const thickTool = document.getElementById("thickTool") as HTMLButtonElement;
 
+const purple = document.getElementById("purple") as HTMLButtonElement;
+const fireStatement = document.getElementById(
+  "fireStatement",
+) as HTMLButtonElement;
+const o7 = document.getElementById(
+  "o7",
+) as HTMLButtonElement;
+
 let isDraw = false;
 let lastX = 0;
 let lastY = 0;
 
 type Point = { x: number; y: number };
-type Stroke = { points: Point[]; thickness: number };
+
+interface Drawable {
+  draw(context: CanvasRenderingContext2D): void;
+}
+
+class StrokeCommand implements Drawable {
+  points: Point[];
+  thickness: number;
+  constructor(points: Point[], thickness: number) {
+    this.points = points;
+    this.thickness = thickness;
+  }
+  draw(context: CanvasRenderingContext2D) {
+    if (this.points.length <= 1) return;
+    context.lineWidth = this.thickness;
+    context.lineCap = "round";
+    context.strokeStyle = "black";
+    context.beginPath();
+    const s0 = this.points[0]!;
+    context.moveTo(s0.x, s0.y);
+    for (let i = 1; i < this.points.length; i++) {
+      const p = this.points[i]!;
+      context.lineTo(p.x, p.y);
+    }
+    context.stroke();
+  }
+}
 
 class ToolPreview {
   x: number;
   y: number;
   thickness: number;
-
   constructor(x: number, y: number, thickness: number) {
     this.x = x;
     this.y = y;
     this.thickness = thickness;
   }
-
   draw(context: CanvasRenderingContext2D) {
     context.save();
     context.beginPath();
@@ -52,36 +89,62 @@ class ToolPreview {
   }
 }
 
-const drawing: Stroke[] = [];
-const redoStack: Stroke[] = [];
-let currentStroke: Stroke | null = null;
+class Sticker implements Drawable {
+  emoji: string;
+  x: number;
+  y: number;
+  size: number;
+
+  constructor(emoji: string, x: number, y: number, size = 24) {
+    this.emoji = emoji;
+    this.x = x;
+    this.y = y;
+    this.size = size;
+  }
+
+  draw(context: CanvasRenderingContext2D) {
+    context.font = `${this.size}px serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(this.emoji, this.x, this.y);
+  }
+
+  contains(x: number, y: number): boolean {
+    const radius = this.size / 2;
+    const dx = x - this.x;
+    const dy = y - this.y;
+    return dx * dx + dy * dy <= radius * radius;
+  }
+
+  moveTo(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+const drawing: Drawable[] = [];
+const redoStack: Drawable[] = [];
+let currentStroke: StrokeCommand | null = null;
 let currentThickness = 2;
-let toolPreview: ToolPreview | null = null;
+let toolPreview: Drawable | null = null;
+
+type ToolMode = "draw" | "sticker";
+let currentTool: ToolMode = "draw";
+let currentStickerEmoji: string | null = null;
+
+let draggedSticker: Sticker | null = null;
 
 function drawingChanged() {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
-
 function toolMoved() {
   canvas.dispatchEvent(new Event("tool-moved"));
 }
 
 function redrawAll() {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.strokeStyle = "black";
-  context.lineCap = "round";
-
-  for (const stroke of drawing) {
-    if (stroke.points.length <= 1) continue;
-    context.lineWidth = stroke.thickness;
-    const s0 = stroke.points[0]!;
-    context.beginPath();
-    context.moveTo(s0.x, s0.y);
-    for (let i = 1; i < stroke.points.length; i++) {
-      const p = stroke.points[i]!;
-      context.lineTo(p.x, p.y);
-    }
-    context.stroke();
+  for (const item of drawing) {
+    item.draw(context);
   }
   if (!isDraw && toolPreview) {
     toolPreview.draw(context);
@@ -93,38 +156,64 @@ canvas.addEventListener("tool-moved", () => redrawAll());
 
 canvas.addEventListener("mousedown", (e) => {
   const m = e as MouseEvent;
-  isDraw = true;
-  [lastX, lastY] = [m.offsetX, m.offsetY];
-  currentStroke = {
-    points: [{ x: lastX, y: lastY }],
-    thickness: currentThickness,
-  };
-  drawing.push(currentStroke);
-  drawingChanged();
+
+  if (currentTool === "draw") {
+    isDraw = true;
+    [lastX, lastY] = [m.offsetX, m.offsetY];
+    currentStroke = new StrokeCommand(
+      [{ x: lastX, y: lastY }],
+      currentThickness,
+    );
+    drawing.push(currentStroke);
+    drawingChanged();
+  } else if (currentTool === "sticker" && currentStickerEmoji) {
+    const clicked = drawing.findLast(
+      (d) =>
+        d instanceof Sticker && (d as Sticker).contains(m.offsetX, m.offsetY),
+    ) as Sticker | undefined;
+    if (clicked) {
+      draggedSticker = clicked;
+    } else {
+      const sticker = new Sticker(currentStickerEmoji, m.offsetX, m.offsetY);
+      drawing.push(sticker);
+      drawingChanged();
+    }
+  }
 });
 
 canvas.addEventListener("mouseup", () => {
   isDraw = false;
   currentStroke = null;
+  draggedSticker = null;
   drawingChanged();
 });
 
 canvas.addEventListener("mouseout", () => {
   isDraw = false;
   currentStroke = null;
+  draggedSticker = null;
   toolPreview = null;
   drawingChanged();
 });
 
 canvas.addEventListener("mousemove", (e) => {
   const m = e as MouseEvent;
-  if (isDraw && currentStroke) {
+
+  if (currentTool === "draw" && isDraw && currentStroke) {
     currentStroke.points.push({ x: m.offsetX, y: m.offsetY });
     [lastX, lastY] = [m.offsetX, m.offsetY];
     drawingChanged();
-  } else {
+  } else if (currentTool === "draw") {
     toolPreview = new ToolPreview(m.offsetX, m.offsetY, currentThickness);
     toolMoved();
+  } else if (currentTool === "sticker" && currentStickerEmoji) {
+    if (draggedSticker) {
+      draggedSticker.moveTo(m.offsetX, m.offsetY);
+      drawingChanged();
+    } else {
+      toolPreview = new Sticker(currentStickerEmoji, m.offsetX, m.offsetY);
+      toolMoved();
+    }
   }
 });
 
@@ -149,13 +238,43 @@ redo.addEventListener("click", () => {
 });
 
 thinTool.addEventListener("click", () => {
+  currentTool = "draw";
   currentThickness = 2;
   thinTool.classList.add("selectedTool");
   thickTool.classList.remove("selectedTool");
+  [purple, fireStatement, o7].forEach((b) =>
+    b.classList.remove("selectedTool")
+  );
+  toolMoved();
 });
 
 thickTool.addEventListener("click", () => {
+  currentTool = "draw";
   currentThickness = 8;
   thickTool.classList.add("selectedTool");
   thinTool.classList.remove("selectedTool");
+  [purple, fireStatement, o7].forEach((b) =>
+    b.classList.remove("selectedTool")
+  );
+  toolMoved();
 });
+
+function selectSticker(emoji: string, button: HTMLButtonElement) {
+  currentTool = "sticker";
+  currentStickerEmoji = emoji;
+  [thinTool, thickTool, purple, fireStatement, o7].forEach((b) =>
+    b.classList.remove("selectedTool")
+  );
+  button.classList.add("selectedTool");
+  toolMoved();
+}
+
+purple.addEventListener("click", () => selectSticker("💜", purple));
+fireStatement.addEventListener(
+  "click",
+  () => selectSticker("🗣️🔥‼️", fireStatement),
+);
+o7.addEventListener(
+  "click",
+  () => selectSticker("🫡", o7),
+);

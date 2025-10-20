@@ -27,3 +27,7 @@
 ## Step 7
 
 - added a preview circle for tool sizes
+
+## Step 8
+
+- added stickers, the ability to move them (albeit it is a bit janky, you can drag any sticker as long as you are using 1 of the 3 sticker tools, though it lags a bit), and refactored my redrawing code as it did not function well with the new stickers
