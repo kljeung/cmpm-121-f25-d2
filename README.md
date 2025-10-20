@@ -11,3 +11,15 @@
 ## Step 3
 
 - added an array to store all points drawn
+
+## Step 4
+
+- added undo/redo buttons and functionality
+
+## Step 5
+
+- added display commands
+
+## Step 6
+
+- added more marker sizes (plus a button to switch between the two)
