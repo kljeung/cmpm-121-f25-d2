@@ -8,9 +8,8 @@ document.body.innerHTML = `
   <button id="thinTool" class="selectedTool">Thin Marker</button>
   <button id="thickTool">Thick Marker</button>
   <br/>
-  <button id="purple">💜</button>
-  <button id="fireStatement">🗣️🔥‼️</button>
-  <button id="o7">🫡</button>
+  <div id="stickerBar"></div>
+  <button id="addSticker">➕ Add Custom Sticker</button>
 `;
 
 const canvas = document.createElement("canvas");
@@ -26,14 +25,37 @@ const undo = document.getElementById("undo") as HTMLButtonElement;
 const redo = document.getElementById("redo") as HTMLButtonElement;
 const thinTool = document.getElementById("thinTool") as HTMLButtonElement;
 const thickTool = document.getElementById("thickTool") as HTMLButtonElement;
+const stickerBar = document.getElementById("stickerBar")!;
+const addStickerButton = document.getElementById(
+  "addSticker",
+) as HTMLButtonElement;
 
-const purple = document.getElementById("purple") as HTMLButtonElement;
-const fireStatement = document.getElementById(
-  "fireStatement",
-) as HTMLButtonElement;
-const o7 = document.getElementById(
-  "o7",
-) as HTMLButtonElement;
+const stickerSet = [
+  { id: "purple", emoji: "💜" },
+  { id: "fireStatement", emoji: "🗣️🔥‼️" },
+  { id: "o7", emoji: "🫡" },
+];
+
+function renderStickerButtons() {
+  stickerBar.innerHTML = "";
+  stickerSet.forEach((sticker) => {
+    const btn = document.createElement("button");
+    btn.id = sticker.id;
+    btn.textContent = sticker.emoji;
+    btn.addEventListener("click", () => selectSticker(sticker.emoji, btn));
+    stickerBar.appendChild(btn);
+  });
+}
+renderStickerButtons();
+
+addStickerButton.addEventListener("click", () => {
+  const emoji = prompt("Enter your custom sticker emoji:", "⭐");
+  if (emoji && emoji.trim().length > 0) {
+    const id = `custom-${Date.now()}`;
+    stickerSet.push({ id, emoji });
+    renderStickerButtons();
+  }
+});
 
 let isDraw = false;
 let lastX = 0;
@@ -131,7 +153,6 @@ let toolPreview: Drawable | null = null;
 type ToolMode = "draw" | "sticker";
 let currentTool: ToolMode = "draw";
 let currentStickerEmoji: string | null = null;
-
 let draggedSticker: Sticker | null = null;
 
 function drawingChanged() {
@@ -242,9 +263,7 @@ thinTool.addEventListener("click", () => {
   currentThickness = 2;
   thinTool.classList.add("selectedTool");
   thickTool.classList.remove("selectedTool");
-  [purple, fireStatement, o7].forEach((b) =>
-    b.classList.remove("selectedTool")
-  );
+  [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   toolMoved();
 });
 
@@ -253,28 +272,15 @@ thickTool.addEventListener("click", () => {
   currentThickness = 8;
   thickTool.classList.add("selectedTool");
   thinTool.classList.remove("selectedTool");
-  [purple, fireStatement, o7].forEach((b) =>
-    b.classList.remove("selectedTool")
-  );
+  [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   toolMoved();
 });
 
 function selectSticker(emoji: string, button: HTMLButtonElement) {
   currentTool = "sticker";
   currentStickerEmoji = emoji;
-  [thinTool, thickTool, purple, fireStatement, o7].forEach((b) =>
-    b.classList.remove("selectedTool")
-  );
+  [thinTool, thickTool].forEach((b) => b.classList.remove("selectedTool"));
+  [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   button.classList.add("selectedTool");
   toolMoved();
 }
-
-purple.addEventListener("click", () => selectSticker("💜", purple));
-fireStatement.addEventListener(
-  "click",
-  () => selectSticker("🗣️🔥‼️", fireStatement),
-);
-o7.addEventListener(
-  "click",
-  () => selectSticker("🫡", o7),
-);
