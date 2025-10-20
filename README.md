@@ -23,3 +23,7 @@
 ## Step 6
 
 - added more marker sizes (plus a button to switch between the two)
+
+## Step 7
+
+- added a preview circle for tool sizes

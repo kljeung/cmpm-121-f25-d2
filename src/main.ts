@@ -12,6 +12,7 @@ document.body.innerHTML = `
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
+canvas.style.cursor = "none";
 document.body.append(canvas);
 
 const context = canvas.getContext("2d")!;
@@ -28,20 +29,48 @@ let lastY = 0;
 type Point = { x: number; y: number };
 type Stroke = { points: Point[]; thickness: number };
 
+class ToolPreview {
+  x: number;
+  y: number;
+  thickness: number;
+
+  constructor(x: number, y: number, thickness: number) {
+    this.x = x;
+    this.y = y;
+    this.thickness = thickness;
+  }
+
+  draw(context: CanvasRenderingContext2D) {
+    context.save();
+    context.beginPath();
+    context.strokeStyle = "gray";
+    context.lineWidth = 1;
+    context.globalAlpha = 0.8;
+    context.arc(this.x, this.y, this.thickness / 2, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
+}
+
 const drawing: Stroke[] = [];
 const redoStack: Stroke[] = [];
 let currentStroke: Stroke | null = null;
 let currentThickness = 2;
+let toolPreview: ToolPreview | null = null;
 
 function drawingChanged() {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
+function toolMoved() {
+  canvas.dispatchEvent(new Event("tool-moved"));
+}
+
 function redrawAll() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.strokeStyle = "black";
-  context.lineWidth = 2;
   context.lineCap = "round";
+
   for (const stroke of drawing) {
     if (stroke.points.length <= 1) continue;
     context.lineWidth = stroke.thickness;
@@ -54,9 +83,13 @@ function redrawAll() {
     }
     context.stroke();
   }
+  if (!isDraw && toolPreview) {
+    toolPreview.draw(context);
+  }
 }
 
 canvas.addEventListener("drawing-changed", () => redrawAll());
+canvas.addEventListener("tool-moved", () => redrawAll());
 
 canvas.addEventListener("mousedown", (e) => {
   const m = e as MouseEvent;
@@ -73,19 +106,26 @@ canvas.addEventListener("mousedown", (e) => {
 canvas.addEventListener("mouseup", () => {
   isDraw = false;
   currentStroke = null;
+  drawingChanged();
 });
 
 canvas.addEventListener("mouseout", () => {
   isDraw = false;
   currentStroke = null;
+  toolPreview = null;
+  drawingChanged();
 });
 
 canvas.addEventListener("mousemove", (e) => {
   const m = e as MouseEvent;
-  if (!isDraw || !currentStroke) return;
-  currentStroke.points.push({ x: m.offsetX, y: m.offsetY });
-  [lastX, lastY] = [m.offsetX, m.offsetY];
-  drawingChanged();
+  if (isDraw && currentStroke) {
+    currentStroke.points.push({ x: m.offsetX, y: m.offsetY });
+    [lastX, lastY] = [m.offsetX, m.offsetY];
+    drawingChanged();
+  } else {
+    toolPreview = new ToolPreview(m.offsetX, m.offsetY, currentThickness);
+    toolMoved();
+  }
 });
 
 button.addEventListener("click", () => {
