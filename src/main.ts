@@ -10,6 +10,7 @@ document.body.innerHTML = `
   <br/>
   <div id="stickerBar"></div>
   <button id="addSticker">➕ Add Custom Sticker</button>
+  <button id="exportButton">📤 Export as PNG</button>
 `;
 
 const canvas = document.createElement("canvas");
@@ -28,6 +29,9 @@ const thickTool = document.getElementById("thickTool") as HTMLButtonElement;
 const stickerBar = document.getElementById("stickerBar")!;
 const addStickerButton = document.getElementById(
   "addSticker",
+) as HTMLButtonElement;
+const exportButton = document.getElementById(
+  "exportButton",
 ) as HTMLButtonElement;
 
 const stickerSet = [
@@ -172,6 +176,23 @@ function redrawAll() {
   }
 }
 
+function exportDrawing() {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+  exportCtx.scale(4, 4);
+  for (const item of drawing) {
+    item.draw(exportCtx);
+  }
+  const dataURL = exportCanvas.toDataURL("image/png");
+  const link = document.createElement("a");
+  link.href = dataURL;
+  link.download = "stickerSketch.png";
+  link.click();
+  exportCanvas.remove();
+}
+
 canvas.addEventListener("drawing-changed", () => redrawAll());
 canvas.addEventListener("tool-moved", () => redrawAll());
 
@@ -284,3 +305,5 @@ function selectSticker(emoji: string, button: HTMLButtonElement) {
   button.classList.add("selectedTool");
   toolMoved();
 }
+
+exportButton.addEventListener("click", exportDrawing);

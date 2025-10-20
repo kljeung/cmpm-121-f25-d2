@@ -35,3 +35,7 @@
 ## Step 9
 
 - added custom stickers and optimized sticker code
+
+## Step 10
+
+- added the ability to export your creations
