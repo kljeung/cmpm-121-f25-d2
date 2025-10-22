@@ -1,31 +1,42 @@
 import "./style.css";
 
 document.body.innerHTML = `
-  <h1> Sticker Sketching </h1>
-  <button id="button">Clear</button>
-  <button id="undo">Undo</button>
-  <button id="redo">Redo</button>
-  <button id="thinTool" class="selectedTool">Thin Marker</button>
-  <button id="thickTool">Thick Marker</button>
-  <br/>
-  <div id="stickerBar"></div>
-  <button id="addSticker">➕ Add Custom Sticker</button>
-  <button id="exportButton">📤 Export as PNG</button>
+  <div id="header">
+    <h1>🎨 Sketchy Business</h1>
+    <div id="top-bar">
+      <button id="button" class="action">🧽 Clear</button>
+      <button id="undo" class="action">↩️ Undo</button>
+      <button id="redo" class="action">↪️ Redo</button>
+      <button id="smolBrush" class="selectedTool">Fine Brush</button>
+      <button id="beegBrush">Bold Brush</button>
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div id="bottom-bar">
+   <div id="stickerBar"></div>
+
+    <div id="utilityButtons">
+      <button id="addSticker">➕ Add Emoji</button>
+     <button id="exportButton">📤 Export</button>
+    </div>
+</div>
 `;
 
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
 canvas.style.cursor = "none";
-document.body.append(canvas);
+document.getElementById("canvas-container")!.append(canvas);
 
 const context = canvas.getContext("2d")!;
 
 const button = document.getElementById("button") as HTMLButtonElement;
 const undo = document.getElementById("undo") as HTMLButtonElement;
 const redo = document.getElementById("redo") as HTMLButtonElement;
-const thinTool = document.getElementById("thinTool") as HTMLButtonElement;
-const thickTool = document.getElementById("thickTool") as HTMLButtonElement;
+const smolBrush = document.getElementById("smolBrush") as HTMLButtonElement;
+const beegBrush = document.getElementById("beegBrush") as HTMLButtonElement;
 const stickerBar = document.getElementById("stickerBar")!;
 const addStickerButton = document.getElementById(
   "addSticker",
@@ -35,9 +46,9 @@ const exportButton = document.getElementById(
 ) as HTMLButtonElement;
 
 const stickerSet = [
-  { id: "purple", emoji: "💜" },
-  { id: "fireStatement", emoji: "🗣️🔥‼️" },
-  { id: "o7", emoji: "🫡" },
+  { id: "clown", emoji: "🤡" },
+  { id: "starEyes", emoji: "🤩" },
+  { id: "runningInThe90s", emoji: "🏃‍♀️💨" },
 ];
 
 function renderStickerButtons() {
@@ -53,7 +64,7 @@ function renderStickerButtons() {
 renderStickerButtons();
 
 addStickerButton.addEventListener("click", () => {
-  const emoji = prompt("Enter your custom sticker emoji:", "⭐");
+  const emoji = prompt("Enter your custom sticker emoji:", "💜");
   if (emoji && emoji.trim().length > 0) {
     const id = `custom-${Date.now()}`;
     stickerSet.push({ id, emoji });
@@ -279,20 +290,20 @@ redo.addEventListener("click", () => {
   drawingChanged();
 });
 
-thinTool.addEventListener("click", () => {
+smolBrush.addEventListener("click", () => {
   currentTool = "draw";
-  currentThickness = 2;
-  thinTool.classList.add("selectedTool");
-  thickTool.classList.remove("selectedTool");
+  currentThickness = 1;
+  smolBrush.classList.add("selectedTool");
+  beegBrush.classList.remove("selectedTool");
   [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   toolMoved();
 });
 
-thickTool.addEventListener("click", () => {
+beegBrush.addEventListener("click", () => {
   currentTool = "draw";
-  currentThickness = 8;
-  thickTool.classList.add("selectedTool");
-  thinTool.classList.remove("selectedTool");
+  currentThickness = 10;
+  beegBrush.classList.add("selectedTool");
+  smolBrush.classList.remove("selectedTool");
   [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   toolMoved();
 });
@@ -300,7 +311,7 @@ thickTool.addEventListener("click", () => {
 function selectSticker(emoji: string, button: HTMLButtonElement) {
   currentTool = "sticker";
   currentStickerEmoji = emoji;
-  [thinTool, thickTool].forEach((b) => b.classList.remove("selectedTool"));
+  [smolBrush, beegBrush].forEach((b) => b.classList.remove("selectedTool"));
   [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
   button.classList.add("selectedTool");
   toolMoved();

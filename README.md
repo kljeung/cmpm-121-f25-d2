@@ -39,3 +39,7 @@
 ## Step 10
 
 - added the ability to export your creations
+
+## Step 11
+
+- made it pretty and changed the emotes/brush sizes
