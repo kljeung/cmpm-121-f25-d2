@@ -43,3 +43,7 @@
 ## Step 11
 
 - made it pretty and changed the emotes/brush sizes
+
+## Step 12
+
+- added a random color function to brushes (only swaps colors randomly when user picks a new tool)

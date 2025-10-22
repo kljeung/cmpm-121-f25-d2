@@ -75,8 +75,14 @@ addStickerButton.addEventListener("click", () => {
 let isDraw = false;
 let lastX = 0;
 let lastY = 0;
+let currentColor = randomColor();
 
 type Point = { x: number; y: number };
+
+function randomColor(): string {
+  const hue = Math.floor(Math.random() * 360);
+  return `hsl(${hue}, 80%, 50%)`;
+}
 
 interface Drawable {
   draw(context: CanvasRenderingContext2D): void;
@@ -85,15 +91,19 @@ interface Drawable {
 class StrokeCommand implements Drawable {
   points: Point[];
   thickness: number;
-  constructor(points: Point[], thickness: number) {
+  color: string;
+
+  constructor(points: Point[], thickness: number, color: string) {
     this.points = points;
     this.thickness = thickness;
+    this.color = color;
   }
+
   draw(context: CanvasRenderingContext2D) {
     if (this.points.length <= 1) return;
     context.lineWidth = this.thickness;
     context.lineCap = "round";
-    context.strokeStyle = "black";
+    context.strokeStyle = this.color;
     context.beginPath();
     const s0 = this.points[0]!;
     context.moveTo(s0.x, s0.y);
@@ -109,16 +119,20 @@ class ToolPreview {
   x: number;
   y: number;
   thickness: number;
-  constructor(x: number, y: number, thickness: number) {
+  color: string;
+
+  constructor(x: number, y: number, thickness: number, color: string) {
     this.x = x;
     this.y = y;
     this.thickness = thickness;
+    this.color = color;
   }
+
   draw(context: CanvasRenderingContext2D) {
     context.save();
     context.beginPath();
-    context.strokeStyle = "gray";
-    context.lineWidth = 1;
+    context.strokeStyle = this.color;
+    context.lineWidth = 2;
     context.globalAlpha = 0.8;
     context.arc(this.x, this.y, this.thickness / 2, 0, Math.PI * 2);
     context.stroke();
@@ -216,6 +230,7 @@ canvas.addEventListener("mousedown", (e) => {
     currentStroke = new StrokeCommand(
       [{ x: lastX, y: lastY }],
       currentThickness,
+      currentColor,
     );
     drawing.push(currentStroke);
     drawingChanged();
@@ -257,7 +272,12 @@ canvas.addEventListener("mousemove", (e) => {
     [lastX, lastY] = [m.offsetX, m.offsetY];
     drawingChanged();
   } else if (currentTool === "draw") {
-    toolPreview = new ToolPreview(m.offsetX, m.offsetY, currentThickness);
+    toolPreview = new ToolPreview(
+      m.offsetX,
+      m.offsetY,
+      currentThickness,
+      currentColor,
+    );
     toolMoved();
   } else if (currentTool === "sticker" && currentStickerEmoji) {
     if (draggedSticker) {
@@ -293,6 +313,7 @@ redo.addEventListener("click", () => {
 smolBrush.addEventListener("click", () => {
   currentTool = "draw";
   currentThickness = 1;
+  currentColor = randomColor();
   smolBrush.classList.add("selectedTool");
   beegBrush.classList.remove("selectedTool");
   [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
@@ -302,6 +323,7 @@ smolBrush.addEventListener("click", () => {
 beegBrush.addEventListener("click", () => {
   currentTool = "draw";
   currentThickness = 10;
+  currentColor = randomColor();
   beegBrush.classList.add("selectedTool");
   smolBrush.classList.remove("selectedTool");
   [...stickerBar.children].forEach((b) => b.classList.remove("selectedTool"));
